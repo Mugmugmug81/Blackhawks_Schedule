@@ -201,7 +201,7 @@ def to_excel(df):
     return processed_data
 
 # Streamlit App
-st.title(f"Chicago Blackhawks Complete Schedule {current_year}-{next_year}")
+st.title(f"Chicago Blackhawks {current_year}-{next_year} Schedule")
 
 # Add the audio player with your MP3 file
 st.audio("chelsea_dagger_rtone.mp3")
@@ -241,4 +241,5 @@ else:
         f"<a href='mailto:{email_address}?subject={subject}'>Feedback? Click here to let me know!</a>",
         unsafe_allow_html=True
     )
+
 
