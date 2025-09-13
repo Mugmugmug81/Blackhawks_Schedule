@@ -235,9 +235,10 @@ else:
     st.markdown("---") # A horizontal line to separate the content
 
     # Add the mailto link for feedback
-    email_address = "your_email@example.com"
+    email_address = "alexanderscottrose@gmail.com"
     subject = "Feedback on the Blackhawks Schedule App"
     st.markdown(
         f"<a href='mailto:{email_address}?subject={subject}'>Feedback? Click here to let me know!</a>",
         unsafe_allow_html=True
     )
+
