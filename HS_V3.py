@@ -6,7 +6,7 @@ import pytz
 import platform
 from io import BytesIO
 
-# --- Custom CSS styling ---
+# --- Custom styling ---
 st.markdown(
     """
     <style>
@@ -76,7 +76,8 @@ ODDS_API_KEY = "fe20507336eda30c02f7e8cffd7fad39"
 SPORT_KEY = "icehockey_nhl"
 REGIONS = "us"
 MARKET = "h2h"
-ODDS_API_URL = f"https://api.the-odds-api.com/v4/sports/{SPORT_KEY}/odds?regions={REGIONS}&markets={MARKET}&apiKey={ODDS_API_KEY}"
+# Set oddsFormat to 'american'
+ODDS_API_URL = f"https://api.the-odds-api.com/v4/sports/{SPORT_KEY}/odds?regions={REGIONS}&markets={MARKET}&oddsFormat=american&apiKey={ODDS_API_KEY}"
 
 # Map NHL API team abbreviations to full names for The Odds API
 team_map = {
@@ -120,7 +121,7 @@ def find_game_odds(odds_data, home_team_abbrev, away_team_abbrev):
     for game in odds_data:
         if (game['home_team'] == home_team_full and game['away_team'] == away_team_full) or \
            (game['away_team'] == home_team_full and game['home_team'] == away_team_full):
-            
+
             for bookmaker in game['bookmakers']:
                 if bookmaker['key'] == 'draftkings':
                     for market in bookmaker['markets']:
@@ -137,26 +138,26 @@ def find_game_odds(odds_data, home_team_abbrev, away_team_abbrev):
 def fetch_full_schedule():
     """Fetches full Blackhawks schedule from the new NHL API."""
     try:
-        # Fetch odds data first, so we don't call the API in a loop
         odds_data = get_live_odds()
 
         response = requests.get(NHL_API_URL)
         response.raise_for_status()
         schedule_data = response.json()
-        
+
         games = []
         for game in schedule_data['games']:
-            game_date_time_utc = datetime.fromisoformat(game['gameDate']).replace(tzinfo=pytz.utc)
+            # Correctly use 'startTimeUTC' which has the time and localize to UTC
+            game_date_time_utc = datetime.fromisoformat(game['startTimeUTC'].replace('Z', '+00:00')).astimezone(pytz.utc)
             game_date_time_central = game_date_time_utc.astimezone(central)
 
             is_home_game = game['homeTeam']['abbrev'] == TEAM_ID
             opponent_abbrev = game['awayTeam']['abbrev'] if is_home_game else game['homeTeam']['abbrev']
             opponent = f'vs. {opponent_abbrev}' if is_home_game else f'@ {opponent_abbrev}'
-            
+
             if game['gameState'] == 'FINAL':
                 home_score = game['homeTeam']['score']
                 away_score = game['awayTeam']['score']
-                
+
                 if is_home_game:
                     result = "Win" if home_score > away_score else "Loss"
                     score_str = f"{home_score}-{away_score} ({result})"
@@ -202,19 +203,41 @@ def to_excel(df):
 # Streamlit App
 st.title(f"Chicago Blackhawks Complete Schedule {current_year}-{next_year}")
 
+# Add the audio player with your MP3 file
+st.audio("chelsea_dagger_rtone.mp3")
+
 with st.spinner("Fetching schedule data..."):
     df_schedule = fetch_full_schedule()
 
 if df_schedule.empty:
     st.write("No schedule data found.")
 else:
-    st.dataframe(df_schedule)
+    st.dataframe(
+        df_schedule,
+        # Configure the 'Odds' column to be wider
+        column_config={
+            "Odds": st.column_config.Column(
+                "Odds",
+                width="large",
+            )
+        }
+    )
 
     excel_filename = f'blackhawks_schedule_{CURRENT_SEASON[:4]}-{CURRENT_SEASON[4:]}.xlsx'
     excel_data = to_excel(df_schedule)
     st.download_button(
-        label="Download schedule",
+        label="Download schedule as Excel",
         data=excel_data,
         file_name=excel_filename,
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    st.markdown("---") # A horizontal line to separate the content
+
+    # Add the mailto link for feedback
+    email_address = "your_email@example.com"
+    subject = "Feedback on the Blackhawks Schedule App"
+    st.markdown(
+        f"<a href='mailto:{email_address}?subject={subject}'>Feedback? Click here to let me know!</a>",
+        unsafe_allow_html=True
     )
